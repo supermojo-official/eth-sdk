@@ -1,4 +1,4 @@
-import { expect, mockFn } from 'earljs'
+import { expect, mockFn } from 'earl'
 
 import { parseAddress } from '../../config'
 import { FetchJson } from '../../peripherals/fetchJson'
@@ -18,7 +18,7 @@ describe(getAbiFromSourcify.name, () => {
     const fetchAbi = mockFn<FetchJson<SourcifyFile[]>>(async (_url) => FILES_FROM_SOURCIFY)
     const abi = await getAbiFromSourcify('ropsten', addr, userNetworkIds, fetchAbi)
 
-    expect(fetchAbi).toHaveBeenCalledWith([`https://sourcify.dev/server/files/3/${addr}`])
+    expect(fetchAbi).toHaveBeenCalledWith(`https://sourcify.dev/server/files/3/${addr}`)
     expect(abi).toEqual(CONTRACT_ABI)
   })
 
@@ -26,17 +26,15 @@ describe(getAbiFromSourcify.name, () => {
     const fetchAbi = mockFn<FetchJson<SourcifyFile[]>>(async (_url) => FILES_FROM_SOURCIFY)
     const _abi = await getAbiFromSourcify(UserProvidedNetworkSymbol('dethcrypto-test'), addr, userNetworkIds, fetchAbi)
 
-    expect(fetchAbi).toHaveBeenCalledWith([
+    expect(fetchAbi).toHaveBeenCalledWith(
       `https://sourcify.dev/server/files/${userNetworkIds['dethcrypto-test']}/${addr}`,
-    ])
+    )
   })
 
   it('throws when network id is not found', async () => {
     const network = UserProvidedNetworkSymbol('cool-net')
-    await expect(getAbiFromSourcify(network, addr, {}, async (_url) => FILES_FROM_SOURCIFY)).toBeRejected(
-      expect.stringMatching(
-        `Network ID for "cool-net" was not found. Please add it to "networkIds" object in the config.`,
-      ),
+    await expect(getAbiFromSourcify(network, addr, {}, async (_url) => FILES_FROM_SOURCIFY)).toBeRejectedWith(
+      'Network ID for "cool-net" was not found. Please add it to "networkIds" object in the config.',
     )
   })
 })

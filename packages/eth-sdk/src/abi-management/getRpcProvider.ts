@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { FetchRequest, JsonRpcApiProviderOptions, JsonRpcProvider, Networkish, Provider } from 'ethers'
 
 import { EthSdkConfig, RpcURLs } from '../config'
 import { NetworkSymbol } from './networks'
@@ -14,12 +14,26 @@ const rpcProviders: RpcURLs = {
   sepolia: `https://sepolia.infura.io/v3/${INFURA_PROJECT_URL}`,
 }
 
-export function getRpcProvider(config: EthSdkConfig, network: NetworkSymbol): RpcProvider | null {
-  const rpcUrl = config.rpc[network] || rpcProviders[network]
-
-  return rpcUrl ? new ethers.providers.JsonRpcProvider(rpcUrl) : null
+export interface IJsonRpcProviderExtended extends Provider {
+  url?: string
 }
 
-export type RpcProvider = Pick<ethers.providers.Provider, 'getCode' | 'getStorageAt' | 'call'>
+export class JsonRpcProviderExtended extends JsonRpcProvider implements IJsonRpcProviderExtended {
+  readonly url?: string
+  constructor(url?: string | FetchRequest, network?: Networkish, options?: JsonRpcApiProviderOptions) {
+    super(url, network, options)
+    if (url instanceof FetchRequest) {
+      this.url = url.url
+    } else if (typeof url === 'string') {
+      this.url = url
+    }
+  }
+}
+
+export function getRpcProvider(config: EthSdkConfig, network: NetworkSymbol): IJsonRpcProviderExtended | null {
+  const rpcUrl = config.rpc[network] || rpcProviders[network]
+
+  return rpcUrl ? new JsonRpcProviderExtended(rpcUrl) : null
+}
 
 export type GetRpcProvider = typeof getRpcProvider

@@ -1,4 +1,4 @@
-import { expect } from 'earljs'
+import { expect } from 'earl'
 
 import { parseArgs } from './parseArgs'
 
@@ -7,10 +7,10 @@ describe('cli > parseArgs', () => {
 
   it('throws on deprecated --out option', () => {
     expect(() => parseArgs({ argv: ['', '', ...'-p sdk -o @dethcrypto/eth-sdk-client'.split(' ')], cwd })).toThrow(
-      expect.stringMatching('The "-o" argument is deprecated'),
+      'The "-o" argument is deprecated',
     )
     expect(() => parseArgs({ argv: ['', '', ...'-p sdk --out my-outdir'.split(' ')], cwd })).toThrow(
-      expect.stringMatching('The "--out" argument is deprecated'),
+      'The "--out" argument is deprecated',
     )
   })
 
