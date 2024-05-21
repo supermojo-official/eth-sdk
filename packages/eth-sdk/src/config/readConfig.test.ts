@@ -1,4 +1,4 @@
-import { expect, mockFn } from 'earljs'
+import { expect, mockFn } from 'earl'
 import proxyquire = require('proxyquire')
 import { assert, noop } from 'ts-essentials'
 
@@ -52,7 +52,7 @@ describe('readConfig', () => {
       }),
     )
 
-    await expect(promise).toBeRejected(expect.stringMatching(`"contracts.mkr": Expected object, received string`))
+    await expect(promise).toBeRejectedWith(`"contracts.mkr": Expected object, received string`)
   })
 
   it('reads contracts and outputPath from JavaScript config', async () => {
@@ -93,7 +93,7 @@ describe('readConfig', () => {
 
     const config = await readConfig('config.ts', mockRequire('config.ts', configFixture))
 
-    expect(register).toHaveBeenCalledWith([{ compilerOptions: { module: 'CommonJS' } }])
+    expect(register).toHaveBeenCalledWith({ compilerOptions: { module: 'CommonJS' } })
     expect(config).toEqual(configFixture)
   })
 
@@ -102,7 +102,7 @@ describe('readConfig', () => {
       'ts-node': null,
     })
 
-    await expect(readConfig('./eth-sdk/eth-sdk.config.ts', noop)).toBeRejected(
+    await expect(readConfig('./eth-sdk/eth-sdk.config.ts', noop)).toBeRejectedWith(
       'Could not read config file: ./eth-sdk/eth-sdk.config.ts\n' +
         'You need ts-node to write eth-sdk config in TypeScript.',
     )

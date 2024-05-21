@@ -1,5 +1,5 @@
-import { expect } from 'earljs'
-import { constants } from 'ethers'
+import { expect } from 'earl'
+import { ethers } from 'ethers'
 
 import { EthSdkConfigInput, ethSdKContractsSchema } from '.'
 import { Address, parseAddress, parseEthSdkConfig } from './types'
@@ -7,12 +7,12 @@ import { Address, parseAddress, parseEthSdkConfig } from './types'
 describe('config types', () => {
   describe(parseAddress.name, () => {
     it('throws when argument is not an address', () => {
-      expect(() => parseAddress('T-Rex')).toThrow(expect.stringMatching('"T-Rex" is not an address.'))
+      expect(() => parseAddress('T-Rex')).toThrow('"T-Rex" is not an address.')
     })
 
     it('parses an address', () => {
-      const actual: Address = parseAddress(constants.AddressZero)
-      expect(actual).toEqual(constants.AddressZero as Address)
+      const actual: Address = parseAddress(ethers.ZeroAddress)
+      expect(actual).toEqual(ethers.ZeroAddress as Address)
     })
   })
 
@@ -20,11 +20,11 @@ describe('config types', () => {
     it('parses valid schemas', () => {
       ethSdKContractsSchema.parse({
         mainnet: {
-          a: constants.AddressZero,
+          a: ethers.ZeroAddress,
           b: {
-            c: constants.AddressZero,
+            c: ethers.ZeroAddress,
             d: {
-              e: constants.AddressZero,
+              e: ethers.ZeroAddress,
             },
           },
         },
@@ -47,7 +47,7 @@ describe('config types', () => {
           },
         }
 
-        expect(() => parseEthSdkConfig(input)).toThrow(expect.stringMatching(INVALID_ADDRESS_EXPECTED_ERROR_MESSAGE))
+        expect(() => parseEthSdkConfig(input)).toThrow(INVALID_ADDRESS_EXPECTED_ERROR_MESSAGE)
       }
     })
 
@@ -55,7 +55,7 @@ describe('config types', () => {
       const input = {
         contracts: {
           mainnet: {
-            dai: constants.AddressZero,
+            dai: ethers.ZeroAddress,
           },
         },
         rpc: {
@@ -66,7 +66,7 @@ describe('config types', () => {
 
       expect(parseEthSdkConfig(input)).toEqual({
         contracts: input.contracts as any,
-        outputPath: expect.stringMatching(''),
+        outputPath: expect.includes(''),
         etherscanKeys: {},
         etherscanURLs: {},
         rpc: {
@@ -83,7 +83,7 @@ describe('config types', () => {
         1: true,
       }
 
-      expect(() => parseEthSdkConfig(schema)).toThrow(expect.stringMatching(`Unrecognized key(s) in object: '1'`))
+      expect(() => parseEthSdkConfig(schema)).toThrow(`Unrecognized key(s) in object: '1'`)
     })
   })
 })

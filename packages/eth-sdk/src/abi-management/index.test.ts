@@ -1,4 +1,5 @@
-import { expect, mockFn } from 'earljs'
+import { expect, mockFn, mockObject } from 'earl'
+import { JsonRpcProvider } from 'ethers'
 import { Dictionary } from 'ts-essentials'
 
 import { mockFilesystem } from '../../test/filesystemMock'
@@ -6,17 +7,17 @@ import { randomAddress } from '../../test/test-utils'
 import { createEthSdkConfig, parseAddress } from '../config'
 import { Abi, EthSdkCtx } from '../types'
 import { constrain } from '../utils/constrain'
-import { GetRpcProvider, RpcProvider } from './getRpcProvider'
+import { GetRpcProvider } from './getRpcProvider'
 import { gatherABIs, GetAbi } from './index'
 
 const fs = mockFilesystem({})
 
 describe(gatherABIs.name, () => {
-  const rpcProvider = {
-    call: mockFn<RpcProvider['call']>(),
-    getCode: mockFn<RpcProvider['getCode']>(),
-    getStorageAt: mockFn<RpcProvider['getStorageAt']>().resolvesTo('0x0'),
-  }
+  const rpcProvider = mockObject<JsonRpcProvider>({
+    call: mockFn<JsonRpcProvider['call']>(),
+    getCode: mockFn<JsonRpcProvider['getCode']>(),
+    getStorage: mockFn<JsonRpcProvider['getStorage']>().resolvesTo('0x0'),
+  })
 
   it('writes abi to output path', async () => {
     const abi: Abi = [
@@ -47,11 +48,11 @@ describe(gatherABIs.name, () => {
       fs,
     }
 
-    await gatherABIs(ctx, getAbi, (): RpcProvider => rpcProvider)
+    await gatherABIs(ctx, getAbi, () => rpcProvider)
 
     expect(fs.test.isDirectory('workdirPath/abis/kovan')).toEqual(true)
     expect(fs.test.readJson('workdirPath/abis/kovan/dai.json')).toEqual(abi)
-    expect(getAbi).toHaveBeenCalledWith(['kovan', contracts.kovan.dai])
+    expect(getAbi).toHaveBeenCalledWith('kovan', contracts.kovan.dai)
   })
 
   it('uses implementation abi instead of proxy abi', async () => {
@@ -82,23 +83,23 @@ describe(gatherABIs.name, () => {
     }) as GetAbi)
     const getProvider = mockFn<GetRpcProvider>(() => ({
       ...rpcProvider,
-      getCode: mockFn<RpcProvider['getCode']>().resolvesTo('0xfff'),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>().resolvesTo(implementationAddr),
+      getCode: mockFn<JsonRpcProvider['getCode']>().resolvesTo('0xfff'),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>().resolvesTo(implementationAddr),
     }))
 
     await gatherABIs(ctx, getAbi, getProvider)
 
     expect(fs.test.readJson('workdirPath/abis/goerli/proxy.json')).toEqual(abis.implementation)
-    expect(getProvider).toHaveBeenCalledWith([expect.anything(), 'goerli'])
+    expect(getProvider).toHaveBeenCalledWith(expect.anything(), 'goerli')
   })
 
   it('does not call any rpc provider method when config.noFollowProxies is true', async () => {
     const fs = mockFilesystem({})
-    const rpcProvider = {
-      call: mockFn<RpcProvider['call']>().throws(new Error('.call should not be called')),
-      getCode: mockFn<RpcProvider['getCode']>().throws(new Error('.getCode should not be called')),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>().throws(new Error('.getStorageAt should not be called')),
-    }
+    const rpcProvider = mockObject<JsonRpcProvider>({
+      call: mockFn<JsonRpcProvider['call']>().throws(new Error('.call should not be called')),
+      getCode: mockFn<JsonRpcProvider['getCode']>().throws(new Error('.getCode should not be called')),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>().throws(new Error('.getStorageAt should not be called')),
+    })
 
     const getAbi = mockFn((async () => []) as GetAbi)
     const ctx: EthSdkCtx = {
@@ -114,7 +115,7 @@ describe(gatherABIs.name, () => {
       fs,
     }
 
-    await gatherABIs(ctx, getAbi, (): RpcProvider => rpcProvider)
+    await gatherABIs(ctx, getAbi, () => rpcProvider)
 
     expect(fs.test.readJson('workdirPath/abis/kovan/dai.json')).toEqual([])
   })
@@ -140,9 +141,9 @@ describe(gatherABIs.name, () => {
 
     await gatherABIs(ctx, async () => [], getProvider)
 
-    expect(mockWarn).toHaveBeenCalledWith([
-      expect.stringMatching(`Please add it to "config.rpc.kovan" to enable fetching proxy implementation ABIs`),
-    ])
+    expect(mockWarn).toHaveBeenCalledWith(
+      expect.includes('Please add it to "config.rpc.kovan" to enable fetching proxy implementation ABIs'),
+    )
 
     console.warn = _consoleWarn
   })

@@ -1,7 +1,5 @@
-import { Interface } from '@ethersproject/abi'
-import { TransactionRequest } from '@ethersproject/abstract-provider'
-import { expect, mockFn } from 'earljs'
-import { constants } from 'ethers'
+import { expect, mockFn } from 'earl'
+import { ethers,Interface, JsonRpcProvider, TransactionRequest } from 'ethers'
 
 import { randomAddress } from '../../test/test-utils'
 import { Abi } from '../types'
@@ -11,7 +9,6 @@ import {
   NUMBER_OF_KNOWN_STORAGE_SLOTS,
   ZEPPELIN_IMPLEMENTATION_STORAGE_SLOT,
 } from './detectProxy'
-import type { RpcProvider } from './getRpcProvider'
 
 describe(detectProxy.name, () => {
   const abiWithImplementationGetter: Abi = [
@@ -26,9 +23,9 @@ describe(detectProxy.name, () => {
 
   it('reads storage under EIP1967 implementation storage slot', async () => {
     const rpcProvider = {
-      call: mockFn<RpcProvider['call']>(),
-      getCode: mockFn<RpcProvider['getCode']>().resolvesToOnce('0xfff'),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>()
+      call: mockFn<JsonRpcProvider['call']>(),
+      getCode: mockFn<JsonRpcProvider['getCode']>().resolvesToOnce('0xfff'),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>()
         .given(proxyAddr, EIP1967_IMPLEMENTATION_STORAGE_SLOT)
         .resolvesToOnce(implAddr),
     }
@@ -37,15 +34,15 @@ describe(detectProxy.name, () => {
     const actual = await detectProxy(proxyAddr, abi, rpcProvider)
 
     expect(actual).toEqual({ implAddress: implAddr, isProxy: true })
-    expect(rpcProvider.getStorageAt).toHaveBeenCalledWith([proxyAddr, EIP1967_IMPLEMENTATION_STORAGE_SLOT])
+    expect(rpcProvider.getStorage).toHaveBeenCalledWith(proxyAddr as string, EIP1967_IMPLEMENTATION_STORAGE_SLOT)
   })
 
   it('reads storage under OpenZeppelin implementation storage slot', async () => {
     const rpcProvider = {
-      call: mockFn<RpcProvider['call']>(),
-      getCode: mockFn<RpcProvider['getCode']>().resolvesToOnce('0xfff'),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>()
-        .resolvesTo(constants.AddressZero)
+      call: mockFn<JsonRpcProvider['call']>(),
+      getCode: mockFn<JsonRpcProvider['getCode']>().resolvesToOnce('0xfff'),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>()
+        .resolvesTo(ethers.ZeroAddress)
         .given(proxyAddr, ZEPPELIN_IMPLEMENTATION_STORAGE_SLOT)
         .resolvesToOnce(implAddr),
     }
@@ -54,15 +51,15 @@ describe(detectProxy.name, () => {
     const actual = await detectProxy(proxyAddr, abi, rpcProvider)
 
     expect(actual).toEqual({ implAddress: implAddr, isProxy: true })
-    expect(rpcProvider.getStorageAt).toHaveBeenCalledWith([proxyAddr, EIP1967_IMPLEMENTATION_STORAGE_SLOT])
-    expect(rpcProvider.getStorageAt).toHaveBeenCalledWith([proxyAddr, ZEPPELIN_IMPLEMENTATION_STORAGE_SLOT])
+    expect(rpcProvider.getStorage).toHaveBeenCalledWith(proxyAddr, EIP1967_IMPLEMENTATION_STORAGE_SLOT)
+    expect(rpcProvider.getStorage).toHaveBeenCalledWith(proxyAddr, ZEPPELIN_IMPLEMENTATION_STORAGE_SLOT)
   })
 
   it('detects .implementation getter', async () => {
     const rpcProvider = {
-      call: mockFn<RpcProvider['call']>().resolvesToOnce(implAddr),
-      getCode: mockFn<RpcProvider['getCode']>().resolvesToOnce('0xfff'),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>().resolvesTo(constants.AddressZero),
+      call: mockFn<JsonRpcProvider['call']>().resolvesToOnce(implAddr),
+      getCode: mockFn<JsonRpcProvider['getCode']>().resolvesToOnce('0xfff'),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>().resolvesTo(ethers.ZeroAddress),
     }
 
     const actual = await detectProxy(proxyAddr, abiWithImplementationGetter, rpcProvider)
@@ -71,35 +68,35 @@ describe(detectProxy.name, () => {
       implAddress: implAddr,
       isProxy: true,
     })
-    expect(rpcProvider.getStorageAt.calls.length).toEqual(NUMBER_OF_KNOWN_STORAGE_SLOTS)
-    expect(rpcProvider.call).toHaveBeenCalledWith([implementationCall])
-    expect(rpcProvider.getCode).toHaveBeenCalledWith([implAddr])
+    expect(rpcProvider.getStorage.calls.length).toEqual(NUMBER_OF_KNOWN_STORAGE_SLOTS)
+    expect(rpcProvider.call).toHaveBeenCalledWith(implementationCall)
+    expect(rpcProvider.getCode).toHaveBeenCalledWith(implAddr)
   })
 
   it('returns { isProxy: false } when .implementation returns nothing', async () => {
     const rpcProvider = {
-      call: mockFn<RpcProvider['call']>().resolvesToOnce(constants.AddressZero),
-      getCode: mockFn<RpcProvider['getCode']>().resolvesToOnce('0xfff'),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>().resolvesTo(constants.AddressZero),
+      call: mockFn<JsonRpcProvider['call']>().resolvesToOnce(ethers.ZeroAddress),
+      getCode: mockFn<JsonRpcProvider['getCode']>().resolvesToOnce('0xfff'),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>().resolvesTo(ethers.ZeroAddress),
     }
 
     const actual = await detectProxy(proxyAddr, abiWithImplementationGetter, rpcProvider)
 
     expect(rpcProvider.getCode.calls.length).toEqual(0)
-    expect(rpcProvider.getStorageAt.calls.length).toEqual(NUMBER_OF_KNOWN_STORAGE_SLOTS)
+    expect(rpcProvider.getStorage.calls.length).toEqual(NUMBER_OF_KNOWN_STORAGE_SLOTS)
     expect(actual).toEqual({ isProxy: false })
   })
 
   it('returns { isProxy: false } when address from .implementation has no contract code', async () => {
     const rpcProvider = {
-      call: mockFn<RpcProvider['call']>().resolvesToOnce(implAddr),
-      getCode: mockFn<RpcProvider['getCode']>().given(implAddr).resolvesToOnce(constants.AddressZero),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>().resolvesTo(constants.AddressZero),
+      call: mockFn<JsonRpcProvider['call']>().resolvesToOnce(implAddr),
+      getCode: mockFn<JsonRpcProvider['getCode']>().given(implAddr).resolvesToOnce(ethers.ZeroAddress),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>().resolvesTo(ethers.ZeroAddress),
     }
 
     const actual = await detectProxy(proxyAddr, abiWithImplementationGetter, rpcProvider)
 
-    expect(rpcProvider.getStorageAt.calls.length).toEqual(NUMBER_OF_KNOWN_STORAGE_SLOTS)
+    expect(rpcProvider.getStorage.calls.length).toEqual(NUMBER_OF_KNOWN_STORAGE_SLOTS)
     expect(actual).toEqual({ isProxy: false })
   })
 
@@ -114,11 +111,11 @@ describe(detectProxy.name, () => {
       },
     ]
     const rpcProvider = {
-      call: mockFn<RpcProvider['call']>()
+      call: mockFn<JsonRpcProvider['call']>()
         .given({ to: proxyAddr, data: new Interface(abi).encodeFunctionData('currentImplementation', []) })
         .resolvesToOnce(implAddr),
-      getCode: mockFn<RpcProvider['getCode']>().resolvesToOnce('0xfff'),
-      getStorageAt: mockFn<RpcProvider['getStorageAt']>().resolvesTo(constants.AddressZero),
+      getCode: mockFn<JsonRpcProvider['getCode']>().resolvesToOnce('0xfff'),
+      getStorage: mockFn<JsonRpcProvider['getStorage']>().resolvesTo(ethers.ZeroAddress),
     }
 
     const actual = await detectProxy(proxyAddr, abi, rpcProvider)

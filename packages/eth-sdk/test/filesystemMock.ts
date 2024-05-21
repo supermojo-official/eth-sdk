@@ -1,4 +1,4 @@
-import { Mock, mockFn } from 'earljs'
+import { MockFunction, mockFn } from 'earl'
 import * as minimatch from 'minimatch'
 
 import { Fs } from '../src/peripherals/fs'
@@ -10,7 +10,7 @@ const DirectoryMarker = Symbol('Directory')
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 type DirectoryMarker = typeof DirectoryMarker
 
-type MockOf<F extends (...args: any[]) => any> = Mock<Parameters<F>, ReturnType<F>>
+type MockOf<F extends (...args: any[]) => any> = MockFunction<Parameters<F>, ReturnType<F>>
 
 type FsMocks = {
   [P in keyof Fs]: MockOf<Fs[P]>

@@ -1,5 +1,5 @@
-import { expect, mockFn } from 'earljs'
-import { constants } from 'ethers'
+import { expect, mockFn } from 'earl'
+import { ethers } from 'ethers'
 
 import { parseAddress, UserEtherscanURLs } from '../../config'
 import { FetchJson } from '../../peripherals/fetchJson'
@@ -19,9 +19,9 @@ describe(getAbiFromEtherscan.name, () => {
     )
 
     expect(actual).toEqual(RETURNED_ABI)
-    expect(fetch).toHaveBeenCalledWith([
+    expect(fetch).toHaveBeenCalledWith(
       `https://api.etherscan.io/api?module=contract&action=getabi&address=${DAI_ADDRESS}&apikey=${apiKey}`,
-    ])
+    )
   })
 
   it('fetches from user-specified URL', async () => {
@@ -46,9 +46,9 @@ describe(getAbiFromEtherscan.name, () => {
     )
 
     expect(actual).toEqual(RETURNED_ABI)
-    expect(fetch).toHaveBeenCalledWith([
+    expect(fetch).toHaveBeenCalledWith(
       `https://dethcryptoscan.test/api/v1?module=contract&action=getabi&address=${ADDRESS_ZERO}&apikey=${apiKey}`,
-    ])
+    )
   })
 
   it('uses user-defined API keys', async () => {
@@ -61,15 +61,15 @@ describe(getAbiFromEtherscan.name, () => {
 
     await getAbiFromEtherscan('mainnet', ADDRESS_ZERO, config, fetch)
 
-    expect(fetch).toHaveBeenCalledWith([
+    expect(fetch).toHaveBeenCalledWith(
       `https://api.etherscan.io/api?module=contract&action=getabi&address=${ADDRESS_ZERO}&apikey=one-mainnet-key`,
-    ])
+    )
 
     await getAbiFromEtherscan('polygon', ADDRESS_ZERO, config, fetch)
 
-    expect(fetch).toHaveBeenCalledWith([
+    expect(fetch).toHaveBeenCalledWith(
       `https://api.polygonscan.com/api?module=contract&action=getabi&address=${ADDRESS_ZERO}&apikey=two-polygon-key`,
-    ])
+    )
   })
 
   it('uses predefined API key', async () => {
@@ -79,13 +79,13 @@ describe(getAbiFromEtherscan.name, () => {
 
     await getAbiFromEtherscan('avalanche', ADDRESS_ZERO, config, fetch)
 
-    expect(fetch).toHaveBeenCalledWith([
+    expect(fetch).toHaveBeenCalledWith(
       `https://api.snowtrace.io/api?module=contract&action=getabi&address=${ADDRESS_ZERO}&apikey=IQEHAJ43W674REN5XV79WF47X37VEB8PIC`,
-    ])
+    )
   })
 })
 
-const ADDRESS_ZERO = parseAddress(constants.AddressZero)
+const ADDRESS_ZERO = parseAddress(ethers.ZeroAddress)
 const DAI_ADDRESS = parseAddress('0x6B175474E89094C44Da98b954EedeAC495271d0F')
 
 const RETURNED_ABI = ['{{ RETURNED_ABI }}'] as Abi
